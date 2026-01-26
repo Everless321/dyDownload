@@ -4949,6 +4949,76 @@ var DOUYIN_MIX_PATTERN = /collection\/([^/?]*)/;
 var DOUYIN_LIVE_PATTERN = /live\/([^/?]*)/;
 var DOUYIN_LIVE_PATTERN2 = /https?:\/\/live\.douyin\.com\/(\d+)/;
 var DOUYIN_ROOM_PATTERN = /reflow\/([^/?]*)/;
+async function resolveDouyinUrl(url) {
+  if (typeof url !== "string") {
+    throw new TypeError("\u53C2\u6570\u5FC5\u987B\u662F\u5B57\u7B26\u4E32\u7C7B\u578B");
+  }
+  const validUrl = extractValidUrls(url);
+  if (!validUrl) {
+    throw new APINotFoundError("\u8F93\u5165\u7684URL\u4E0D\u5408\u6CD5");
+  }
+  const response = await get(validUrl, { followRedirects: true });
+  const finalUrl = response.url;
+  const result = {
+    type: "unknown",
+    url: finalUrl,
+    id: null,
+    secUserId: null,
+    awemeId: null,
+    mixId: null,
+    webcastId: null
+  };
+  let match = DOUYIN_VIDEO_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "video";
+    result.id = match[1];
+    result.awemeId = match[1];
+    return result;
+  }
+  match = DOUYIN_NOTE_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "note";
+    result.id = match[1];
+    result.awemeId = match[1];
+    return result;
+  }
+  match = DOUYIN_USER_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "user";
+    result.id = match[1];
+    result.secUserId = match[1];
+    return result;
+  }
+  match = REDIRECT_SEC_UID_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "user";
+    result.id = match[1];
+    result.secUserId = match[1];
+    return result;
+  }
+  match = DOUYIN_MIX_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "mix";
+    result.id = match[1];
+    result.mixId = match[1];
+    return result;
+  }
+  match = DOUYIN_LIVE_PATTERN.exec(finalUrl);
+  if (match) {
+    result.type = "live";
+    result.id = match[1];
+    result.webcastId = match[1];
+    return result;
+  }
+  match = DOUYIN_LIVE_PATTERN2.exec(finalUrl);
+  if (match) {
+    result.type = "live";
+    result.id = match[1];
+    result.webcastId = match[1];
+    return result;
+  }
+  return result;
+}
 async function getSecUserId(url) {
   if (typeof url !== "string") {
     throw new TypeError("\u53C2\u6570\u5FC5\u987B\u662F\u5B57\u7B26\u4E32\u7C7B\u578B");
@@ -5111,6 +5181,6 @@ function formatTimestamp(timestamp) {
   return date.toISOString().slice(0, 19).replace("T", "_").replace(/:/g, "-");
 }
 
-export { ConfigSchema, DEFAULT_USER_AGENT, DY_LIVE_STATUS_MAPPING, DouyinCrawler, DouyinDownloader, DouyinHandler, ENDPOINTS, FollowingUserLiveFilter, FriendFeedFilter, HomePostSearchFilter, IGNORE_FIELDS, JSONModel, LiveImFetchFilter, MODE_NAMES, ModeRouter, PostCommentFilter, PostCommentReplyFilter, PostDetailFilter, PostRelatedFilter, PostStatsFilter, QueryUserFilter, SuggestWordFilter, UserCollectionFilter, UserCollectsFilter, UserFollowerFilter, UserFollowingFilter, UserLikeFilter, UserLive2Filter, UserLiveFilter, UserLiveStatusFilter, UserMixFilter, UserMusicCollectionFilter, UserPostFilter, UserProfileFilter, abogusModel2Endpoint, abogusStr2Endpoint, createOrRenameUserFolder, createUserFolder, ensureDir, extractAwemeId, extractValidUrls, fetchUserLikes, fetchUserPosts, fetchUserProfile, fetchVideoDetail, fileExists, filterToList, formatBytes, formatFileName, formatTimestamp, genFalseMsToken, genRandomStr, genRealMsToken, genSVWebId, genTtwid, genVerifyFp, genWebid, generateBrowserFingerprint, generateMsToken, getABogus, getAllAwemeId, getAllMixId, getAllModes, getAllRoomId, getAllSecUserId, getAllWebcastId, getAwemeId, getConfig, getDownloadPath, getEncryption, getMixId, getModeDescription, getModeHandler, getMsToken, getMsTokenConfig, getProxy, getReferer, getRoomId, getSecUserId, getTimestamp, getTtwidConfig, getUserAgent, getWebcastId, getWebidConfig, getXBogus, isValidMode, json2Lrc, modeHandler, parseDouyinUrl, registerModeHandler, renameUserFolder, replaceT, resolveShortUrl, sanitizeFilename, setConfig, signEndpoint, signWithABogus, signWithXBogus, sleep, splitFilename, timestamp2Str, toBase36, xbogusModel2Endpoint, xbogusStr2Endpoint };
+export { ConfigSchema, DEFAULT_USER_AGENT, DY_LIVE_STATUS_MAPPING, DouyinCrawler, DouyinDownloader, DouyinHandler, ENDPOINTS, FollowingUserLiveFilter, FriendFeedFilter, HomePostSearchFilter, IGNORE_FIELDS, JSONModel, LiveImFetchFilter, MODE_NAMES, ModeRouter, PostCommentFilter, PostCommentReplyFilter, PostDetailFilter, PostRelatedFilter, PostStatsFilter, QueryUserFilter, SuggestWordFilter, UserCollectionFilter, UserCollectsFilter, UserFollowerFilter, UserFollowingFilter, UserLikeFilter, UserLive2Filter, UserLiveFilter, UserLiveStatusFilter, UserMixFilter, UserMusicCollectionFilter, UserPostFilter, UserProfileFilter, abogusModel2Endpoint, abogusStr2Endpoint, createOrRenameUserFolder, createUserFolder, ensureDir, extractAwemeId, extractValidUrls, fetchUserLikes, fetchUserPosts, fetchUserProfile, fetchVideoDetail, fileExists, filterToList, formatBytes, formatFileName, formatTimestamp, genFalseMsToken, genRandomStr, genRealMsToken, genSVWebId, genTtwid, genVerifyFp, genWebid, generateBrowserFingerprint, generateMsToken, getABogus, getAllAwemeId, getAllMixId, getAllModes, getAllRoomId, getAllSecUserId, getAllWebcastId, getAwemeId, getConfig, getDownloadPath, getEncryption, getMixId, getModeDescription, getModeHandler, getMsToken, getMsTokenConfig, getProxy, getReferer, getRoomId, getSecUserId, getTimestamp, getTtwidConfig, getUserAgent, getWebcastId, getWebidConfig, getXBogus, isValidMode, json2Lrc, modeHandler, parseDouyinUrl, registerModeHandler, renameUserFolder, replaceT, resolveDouyinUrl, resolveShortUrl, sanitizeFilename, setConfig, signEndpoint, signWithABogus, signWithXBogus, sleep, splitFilename, timestamp2Str, toBase36, xbogusModel2Endpoint, xbogusStr2Endpoint };
 //# sourceMappingURL=index.js.map
 //# sourceMappingURL=index.js.map
