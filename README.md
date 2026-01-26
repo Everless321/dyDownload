@@ -1,4 +1,4 @@
-# f2-js
+# dyDownload
 
 抖音视频/图集下载器 - Node.js/TypeScript 实现
 
@@ -60,7 +60,7 @@ npx dy user --help
 ### 下载单个作品
 
 ```typescript
-import { getAwemeId, DouyinHandler, DouyinDownloader } from 'f2-js'
+import { getAwemeId, DouyinHandler, DouyinDownloader } from 'dy-downloader'
 
 const cookie = 'your_cookie'
 const videoUrl = 'https://v.douyin.com/xxx'
@@ -88,7 +88,7 @@ await downloader.createDownloadTasks(postDetail.toAwemeData(), './downloads')
 ### 批量下载用户作品
 
 ```typescript
-import { getSecUserId, DouyinHandler, DouyinDownloader } from 'f2-js'
+import { getSecUserId, DouyinHandler, DouyinDownloader } from 'dy-downloader'
 
 const cookie = 'your_cookie'
 const userUrl = 'https://www.douyin.com/user/xxx'
@@ -116,7 +116,7 @@ for await (const postFilter of handler.fetchUserPostVideos(secUserId, { maxCount
 ### 获取用户资料
 
 ```typescript
-import { getSecUserId, DouyinHandler } from 'f2-js'
+import { getSecUserId, DouyinHandler } from 'dy-downloader'
 
 const handler = new DouyinHandler({ cookie: 'your_cookie' })
 const secUserId = await getSecUserId('https://www.douyin.com/user/xxx')
