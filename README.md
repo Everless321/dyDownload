@@ -19,8 +19,8 @@
 
 ```bash
 # 克隆项目
-git clone https://github.com/Everless321/f2-js.git
-cd f2-js
+git clone https://github.com/Everless321/dyDownload.git
+cd dyDownload
 
 # 安装依赖
 npm install
