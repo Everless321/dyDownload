@@ -87,7 +87,11 @@ export class DouyinCrawler {
     return this.msTokenPromise
   }
 
-  private async model2Endpoint(baseEndpoint: string, params: Record<string, unknown>): Promise<string> {
+  private async model2Endpoint(
+    baseEndpoint: string,
+    params: Record<string, unknown>,
+    body: string = ''
+  ): Promise<string> {
     const msToken = await this.ensureMsToken()
     const paramsWithMsToken = { ...params, msToken }
 
@@ -95,7 +99,7 @@ export class DouyinCrawler {
     if (encryption === 'xb') {
       return xbogusModel2Endpoint(this.userAgent, baseEndpoint, paramsWithMsToken)
     }
-    return abogusModel2Endpoint(this.userAgent, baseEndpoint, paramsWithMsToken)
+    return abogusModel2Endpoint(this.userAgent, baseEndpoint, paramsWithMsToken, body)
   }
 
   private async fetchGetJson<T = unknown>(endpoint: string, maxRetries: number = 3): Promise<HttpResponse<T>> {
@@ -131,7 +135,7 @@ export class DouyinCrawler {
 
   private async fetchPostJson<T = unknown>(
     endpoint: string,
-    body?: Record<string, unknown>
+    body?: string | Record<string, unknown>
   ): Promise<HttpResponse<T>> {
     return post<T>(endpoint, body, { headers: this.headers })
   }
@@ -412,10 +416,21 @@ export class DouyinCrawler {
   /**
    * 查询用户
    */
-  async fetchQueryUser(secUserIds: string): Promise<HttpResponse> {
+  async fetchQueryUser(secUserIds: string = ''): Promise<HttpResponse> {
     const params = createQueryUserParams()
     const endpoint = await this.model2Endpoint(ENDPOINTS.QUERY_USER, params as unknown as Record<string, unknown>)
-    return this.fetchPostJson(endpoint, { sec_user_ids: secUserIds.split(',') })
+
+    // 与 f2 对齐：默认 GET；保留旧语义，传入 sec_user_ids 时走 POST。
+    if (!secUserIds.trim()) {
+      return this.fetchGetJson(endpoint)
+    }
+
+    const secUserIdList = secUserIds
+      .split(',')
+      .map(id => id.trim())
+      .filter(Boolean)
+
+    return this.fetchPostJson(endpoint, { sec_user_ids: secUserIdList })
   }
 
   /**
@@ -423,7 +438,12 @@ export class DouyinCrawler {
    */
   async fetchPostStats(itemId: string, awemeType: number = 0, playDelta: number = 1): Promise<HttpResponse> {
     const params = createPostStatsParams(itemId, awemeType, playDelta)
-    const endpoint = await this.model2Endpoint(ENDPOINTS.POST_STATS, params as unknown as Record<string, unknown>)
-    return this.fetchPostJson(endpoint)
+    const body = toQueryString(params as unknown as Record<string, unknown>)
+    const endpoint = await this.model2Endpoint(
+      ENDPOINTS.POST_STATS,
+      params as unknown as Record<string, unknown>,
+      body
+    )
+    return this.fetchPostJson(endpoint, body)
   }
 }

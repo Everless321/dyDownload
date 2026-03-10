@@ -38,6 +38,7 @@ export interface AwemeData {
   createTime?: string
   cover?: string
   animatedCover?: string
+  dynamicCover?: string
   videoPlayAddr?: string | string[]
   images?: string[]
   imagesVideo?: string[]

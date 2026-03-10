@@ -546,7 +546,7 @@ export class DouyinHandler {
   /**
    * 查询用户
    */
-  async fetchQueryUser(secUserIds: string): Promise<QueryUserFilter> {
+  async fetchQueryUser(secUserIds: string = ''): Promise<QueryUserFilter> {
     const response = await this.crawler.fetchQueryUser(secUserIds)
     return new QueryUserFilter(response.data as Record<string, unknown>)
   }

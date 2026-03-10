@@ -146,9 +146,11 @@ export class DouyinDownloader {
   async downloadCover(awemeData: AwemeData, basePath: string): Promise<void> {
     const coverName = this.buildFileName(awemeData, '_cover')
 
-    // 优先下载动态封面
+    // 按优先级回退：动画封面 -> 动态封面 -> 静态封面
     if (awemeData.animatedCover) {
       this.addDownloadTask(awemeData.animatedCover, basePath, coverName, '.webp')
+    } else if (awemeData.dynamicCover) {
+      this.addDownloadTask(awemeData.dynamicCover, basePath, coverName, '.webp')
     } else if (awemeData.cover) {
       this.addDownloadTask(awemeData.cover, basePath, coverName, '.jpeg')
     } else {

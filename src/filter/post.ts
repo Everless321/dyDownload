@@ -120,6 +120,10 @@ export class UserPostFilter extends JSONModel {
     })
   }
 
+  get dynamicCover(): string[] | null {
+    return this._getListAttrValue('$.aweme_list[*].video.dynamic_cover.url_list[0]') as string[] | null
+  }
+
   get cover(): string[] | null {
     return this._getListAttrValue('$.aweme_list[*].video.origin_cover.url_list[0]') as string[] | null
   }
@@ -214,6 +218,7 @@ export class UserPostFilter extends JSONModel {
     const createTimes = this.createTime
     const covers = this.cover || []
     const animatedCovers = this.animatedCover || []
+    const dynamicCovers = this.dynamicCover || []
     const videoPlayAddrs = this.videoPlayAddr || []
     const images = this.images || []
     const imagesVideo = this.imagesVideo || []
@@ -233,6 +238,7 @@ export class UserPostFilter extends JSONModel {
       createTime: Array.isArray(createTimes) ? createTimes[i] : createTimes,
       cover: covers[i] ?? undefined,
       animatedCover: animatedCovers[i] ?? undefined,
+      dynamicCover: dynamicCovers[i] ?? undefined,
       videoPlayAddr: videoPlayAddrs[i]?.[0] ?? undefined,
       images: images[i] ?? undefined,
       imagesVideo: imagesVideo[i] ?? undefined,
@@ -796,6 +802,10 @@ export class PostDetailFilter extends JSONModel {
     return this._getAttrValue('$.aweme_detail.video.animated_cover.url_list[0]')
   }
 
+  get dynamicCover(): string | null {
+    return this._getAttrValue('$.aweme_detail.video.dynamic_cover.url_list[0]')
+  }
+
   get cover(): string | null {
     return this._getAttrValue('$.aweme_detail.video.origin_cover.url_list[0]')
   }
@@ -840,6 +850,7 @@ export class PostDetailFilter extends JSONModel {
       createTime: this.createTime,
       cover: this.cover || undefined,
       animatedCover: this.animatedCover || undefined,
+      dynamicCover: this.dynamicCover || undefined,
       videoPlayAddr: this.videoPlayAddr?.[0] || undefined,
       images: this.images || undefined,
       imagesVideo: this.imagesVideo || undefined,
