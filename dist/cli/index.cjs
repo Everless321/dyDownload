@@ -4707,12 +4707,16 @@ var DouyinDownloader = class {
    * 下载文件
    */
   async downloadFile(url, basePath, filename, extension, onProgress) {
+    const filePath = path__namespace.join(basePath, `${filename}${extension}`);
     try {
       ensureDir(basePath);
-      const filePath = path__namespace.join(basePath, `${filename}${extension}`);
       if (fs2__namespace.existsSync(filePath)) {
-        console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
-        return { success: true, filePath };
+        const stat = fs2__namespace.statSync(filePath);
+        if (stat.size > 0) {
+          console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
+          return { success: true, filePath };
+        }
+        fs2__namespace.unlinkSync(filePath);
       }
       const globalConfig = getConfig();
       const downloadStream = got__default.default.stream(url, {
@@ -4734,11 +4738,27 @@ var DouyinDownloader = class {
           });
         });
       }
-      const writeStream = fs2__namespace.createWriteStream(filePath);
+      const tmpPath = filePath + ".tmp";
+      const writeStream = fs2__namespace.createWriteStream(tmpPath);
       await promises.pipeline(downloadStream, writeStream);
+      const tmpStat = fs2__namespace.statSync(tmpPath);
+      if (tmpStat.size === 0) {
+        fs2__namespace.unlinkSync(tmpPath);
+        return { success: false, error: "Downloaded file is empty" };
+      }
+      fs2__namespace.renameSync(tmpPath, filePath);
       console.log(`\u4E0B\u8F7D\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {
+      const tmpPath = filePath + ".tmp";
+      try {
+        if (fs2__namespace.existsSync(tmpPath)) fs2__namespace.unlinkSync(tmpPath);
+      } catch {
+      }
+      try {
+        if (fs2__namespace.existsSync(filePath) && fs2__namespace.statSync(filePath).size === 0) fs2__namespace.unlinkSync(filePath);
+      } catch {
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`\u4E0B\u8F7D\u5931\u8D25 [${filename}]: ${errorMsg}`);
       return { success: false, error: errorMsg };

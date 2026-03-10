@@ -48,10 +48,7 @@ export class DouyinDownloader {
   /**
    * 创建下载任务
    */
-  async createDownloadTasks(
-    awemeDatas: AwemeData | AwemeData[],
-    userPath: string
-  ): Promise<void> {
+  async createDownloadTasks(awemeDatas: AwemeData | AwemeData[], userPath: string): Promise<void> {
     if (!awemeDatas || !userPath) return
 
     const dataList = Array.isArray(awemeDatas) ? awemeDatas : [awemeDatas]
@@ -389,14 +386,18 @@ export class DouyinDownloader {
     extension: string,
     onProgress?: ProgressCallback
   ): Promise<DownloadResult> {
+    const filePath = path.join(basePath, `${filename}${extension}`)
     try {
       ensureDir(basePath)
-      const filePath = path.join(basePath, `${filename}${extension}`)
 
-      // 检查文件是否已存在
+      // 检查文件是否已存在且有效
       if (fs.existsSync(filePath)) {
-        console.log(`文件已存在，跳过: ${filePath}`)
-        return { success: true, filePath }
+        const stat = fs.statSync(filePath)
+        if (stat.size > 0) {
+          console.log(`文件已存在，跳过: ${filePath}`)
+          return { success: true, filePath }
+        }
+        fs.unlinkSync(filePath)
       }
 
       const globalConfig = getConfig()
@@ -412,7 +413,7 @@ export class DouyinDownloader {
       })
 
       if (onProgress) {
-        downloadStream.on('downloadProgress', (progress) => {
+        downloadStream.on('downloadProgress', progress => {
           onProgress({
             downloaded: progress.transferred,
             total: progress.total || 0,
@@ -422,12 +423,31 @@ export class DouyinDownloader {
         })
       }
 
-      const writeStream = fs.createWriteStream(filePath)
+      const tmpPath = filePath + '.tmp'
+      const writeStream = fs.createWriteStream(tmpPath)
       await pipeline(downloadStream, writeStream)
 
+      const tmpStat = fs.statSync(tmpPath)
+      if (tmpStat.size === 0) {
+        fs.unlinkSync(tmpPath)
+        return { success: false, error: 'Downloaded file is empty' }
+      }
+
+      fs.renameSync(tmpPath, filePath)
       console.log(`下载完成: ${filePath}`)
       return { success: true, filePath }
     } catch (error) {
+      const tmpPath = filePath + '.tmp'
+      try {
+        if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath)
+      } catch {
+        /* ignore */
+      }
+      try {
+        if (fs.existsSync(filePath) && fs.statSync(filePath).size === 0) fs.unlinkSync(filePath)
+      } catch {
+        /* ignore */
+      }
       const errorMsg = error instanceof Error ? error.message : String(error)
       console.error(`下载失败 [${filename}]: ${errorMsg}`)
       return { success: false, error: errorMsg }
@@ -536,7 +556,7 @@ export class DouyinDownloader {
           const [start, end] = this.config.interval.split('~')
           const startTime = new Date(start).getTime()
           const endTime = new Date(end).getTime()
-          return dataList.filter((item) => {
+          return dataList.filter(item => {
             if (!item.createTime) return true
             const createTime = new Date(item.createTime).getTime()
             return createTime >= startTime && createTime <= endTime
@@ -545,7 +565,7 @@ export class DouyinDownloader {
         return dataList
     }
 
-    return dataList.filter((item) => {
+    return dataList.filter(item => {
       if (!item.createTime) return true
       const createTime = new Date(item.createTime).getTime()
       return createTime >= startDate.getTime()

@@ -2,7 +2,7 @@ import 'axios';
 import { z } from 'zod';
 import crypto from 'crypto';
 import smCrypto from 'sm-crypto';
-import * as fs from 'fs';
+import * as fs2 from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
 import got from 'got';
@@ -1989,13 +1989,13 @@ function createUserFolder(options, nickname) {
   const mode = options.mode || "PLEASE_SETUP_MODE";
   const userPath = path.join(basePath, "douyin", mode, String(nickname));
   const resolvedPath = path.resolve(userPath);
-  fs.mkdirSync(resolvedPath, { recursive: true });
+  fs2.mkdirSync(resolvedPath, { recursive: true });
   return resolvedPath;
 }
 function renameUserFolder(oldPath, newNickname) {
   const parentDir = path.dirname(oldPath);
   const newPath = path.join(parentDir, newNickname);
-  fs.renameSync(oldPath, newPath);
+  fs2.renameSync(oldPath, newPath);
   return path.resolve(newPath);
 }
 function createOrRenameUserFolder(options, localUserData, currentNickname) {
@@ -2019,11 +2019,11 @@ function json2Lrc(data) {
   return lrcLines.join("\n");
 }
 function ensureDir(dirPath) {
-  fs.mkdirSync(dirPath, { recursive: true });
+  fs2.mkdirSync(dirPath, { recursive: true });
 }
 function fileExists(filePath) {
   try {
-    fs.accessSync(filePath, fs.constants.F_OK);
+    fs2.accessSync(filePath, fs2.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -2297,12 +2297,16 @@ var DouyinDownloader = class {
    * 下载文件
    */
   async downloadFile(url, basePath, filename, extension, onProgress) {
+    const filePath = path.join(basePath, `${filename}${extension}`);
     try {
       ensureDir(basePath);
-      const filePath = path.join(basePath, `${filename}${extension}`);
-      if (fs.existsSync(filePath)) {
-        console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
-        return { success: true, filePath };
+      if (fs2.existsSync(filePath)) {
+        const stat = fs2.statSync(filePath);
+        if (stat.size > 0) {
+          console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
+          return { success: true, filePath };
+        }
+        fs2.unlinkSync(filePath);
       }
       const globalConfig = getConfig();
       const downloadStream = got.stream(url, {
@@ -2324,11 +2328,27 @@ var DouyinDownloader = class {
           });
         });
       }
-      const writeStream = fs.createWriteStream(filePath);
+      const tmpPath = filePath + ".tmp";
+      const writeStream = fs2.createWriteStream(tmpPath);
       await pipeline(downloadStream, writeStream);
+      const tmpStat = fs2.statSync(tmpPath);
+      if (tmpStat.size === 0) {
+        fs2.unlinkSync(tmpPath);
+        return { success: false, error: "Downloaded file is empty" };
+      }
+      fs2.renameSync(tmpPath, filePath);
       console.log(`\u4E0B\u8F7D\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {
+      const tmpPath = filePath + ".tmp";
+      try {
+        if (fs2.existsSync(tmpPath)) fs2.unlinkSync(tmpPath);
+      } catch {
+      }
+      try {
+        if (fs2.existsSync(filePath) && fs2.statSync(filePath).size === 0) fs2.unlinkSync(filePath);
+      } catch {
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`\u4E0B\u8F7D\u5931\u8D25 [${filename}]: ${errorMsg}`);
       return { success: false, error: errorMsg };
@@ -2341,11 +2361,11 @@ var DouyinDownloader = class {
     try {
       ensureDir(basePath);
       const filePath = path.join(basePath, `${filename}${extension}`);
-      if (fs.existsSync(filePath)) {
+      if (fs2.existsSync(filePath)) {
         console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
         return { success: true, filePath };
       }
-      fs.writeFileSync(filePath, content, "utf-8");
+      fs2.writeFileSync(filePath, content, "utf-8");
       console.log(`\u4FDD\u5B58\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {

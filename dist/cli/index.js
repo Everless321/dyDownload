@@ -4676,12 +4676,16 @@ var DouyinDownloader = class {
    * 下载文件
    */
   async downloadFile(url, basePath, filename, extension, onProgress) {
+    const filePath = path.join(basePath, `${filename}${extension}`);
     try {
       ensureDir(basePath);
-      const filePath = path.join(basePath, `${filename}${extension}`);
       if (fs2.existsSync(filePath)) {
-        console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
-        return { success: true, filePath };
+        const stat = fs2.statSync(filePath);
+        if (stat.size > 0) {
+          console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
+          return { success: true, filePath };
+        }
+        fs2.unlinkSync(filePath);
       }
       const globalConfig = getConfig();
       const downloadStream = got.stream(url, {
@@ -4703,11 +4707,27 @@ var DouyinDownloader = class {
           });
         });
       }
-      const writeStream = fs2.createWriteStream(filePath);
+      const tmpPath = filePath + ".tmp";
+      const writeStream = fs2.createWriteStream(tmpPath);
       await pipeline(downloadStream, writeStream);
+      const tmpStat = fs2.statSync(tmpPath);
+      if (tmpStat.size === 0) {
+        fs2.unlinkSync(tmpPath);
+        return { success: false, error: "Downloaded file is empty" };
+      }
+      fs2.renameSync(tmpPath, filePath);
       console.log(`\u4E0B\u8F7D\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {
+      const tmpPath = filePath + ".tmp";
+      try {
+        if (fs2.existsSync(tmpPath)) fs2.unlinkSync(tmpPath);
+      } catch {
+      }
+      try {
+        if (fs2.existsSync(filePath) && fs2.statSync(filePath).size === 0) fs2.unlinkSync(filePath);
+      } catch {
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`\u4E0B\u8F7D\u5931\u8D25 [${filename}]: ${errorMsg}`);
       return { success: false, error: errorMsg };

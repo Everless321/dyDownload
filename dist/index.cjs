@@ -4,7 +4,7 @@ require('axios');
 var zod = require('zod');
 var crypto = require('crypto');
 var smCrypto = require('sm-crypto');
-var fs = require('fs');
+var fs2 = require('fs');
 var path = require('path');
 var promises = require('stream/promises');
 var got = require('got');
@@ -34,7 +34,7 @@ function _interopNamespace(e) {
 
 var crypto__default = /*#__PURE__*/_interopDefault(crypto);
 var smCrypto__default = /*#__PURE__*/_interopDefault(smCrypto);
-var fs__namespace = /*#__PURE__*/_interopNamespace(fs);
+var fs2__namespace = /*#__PURE__*/_interopNamespace(fs2);
 var path__namespace = /*#__PURE__*/_interopNamespace(path);
 var got__default = /*#__PURE__*/_interopDefault(got);
 var pLimit__default = /*#__PURE__*/_interopDefault(pLimit);
@@ -2019,13 +2019,13 @@ function createUserFolder(options, nickname) {
   const mode = options.mode || "PLEASE_SETUP_MODE";
   const userPath = path__namespace.join(basePath, "douyin", mode, String(nickname));
   const resolvedPath = path__namespace.resolve(userPath);
-  fs__namespace.mkdirSync(resolvedPath, { recursive: true });
+  fs2__namespace.mkdirSync(resolvedPath, { recursive: true });
   return resolvedPath;
 }
 function renameUserFolder(oldPath, newNickname) {
   const parentDir = path__namespace.dirname(oldPath);
   const newPath = path__namespace.join(parentDir, newNickname);
-  fs__namespace.renameSync(oldPath, newPath);
+  fs2__namespace.renameSync(oldPath, newPath);
   return path__namespace.resolve(newPath);
 }
 function createOrRenameUserFolder(options, localUserData, currentNickname) {
@@ -2049,11 +2049,11 @@ function json2Lrc(data) {
   return lrcLines.join("\n");
 }
 function ensureDir(dirPath) {
-  fs__namespace.mkdirSync(dirPath, { recursive: true });
+  fs2__namespace.mkdirSync(dirPath, { recursive: true });
 }
 function fileExists(filePath) {
   try {
-    fs__namespace.accessSync(filePath, fs__namespace.constants.F_OK);
+    fs2__namespace.accessSync(filePath, fs2__namespace.constants.F_OK);
     return true;
   } catch {
     return false;
@@ -2327,12 +2327,16 @@ var DouyinDownloader = class {
    * 下载文件
    */
   async downloadFile(url, basePath, filename, extension, onProgress) {
+    const filePath = path__namespace.join(basePath, `${filename}${extension}`);
     try {
       ensureDir(basePath);
-      const filePath = path__namespace.join(basePath, `${filename}${extension}`);
-      if (fs__namespace.existsSync(filePath)) {
-        console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
-        return { success: true, filePath };
+      if (fs2__namespace.existsSync(filePath)) {
+        const stat = fs2__namespace.statSync(filePath);
+        if (stat.size > 0) {
+          console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
+          return { success: true, filePath };
+        }
+        fs2__namespace.unlinkSync(filePath);
       }
       const globalConfig = getConfig();
       const downloadStream = got__default.default.stream(url, {
@@ -2354,11 +2358,27 @@ var DouyinDownloader = class {
           });
         });
       }
-      const writeStream = fs__namespace.createWriteStream(filePath);
+      const tmpPath = filePath + ".tmp";
+      const writeStream = fs2__namespace.createWriteStream(tmpPath);
       await promises.pipeline(downloadStream, writeStream);
+      const tmpStat = fs2__namespace.statSync(tmpPath);
+      if (tmpStat.size === 0) {
+        fs2__namespace.unlinkSync(tmpPath);
+        return { success: false, error: "Downloaded file is empty" };
+      }
+      fs2__namespace.renameSync(tmpPath, filePath);
       console.log(`\u4E0B\u8F7D\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {
+      const tmpPath = filePath + ".tmp";
+      try {
+        if (fs2__namespace.existsSync(tmpPath)) fs2__namespace.unlinkSync(tmpPath);
+      } catch {
+      }
+      try {
+        if (fs2__namespace.existsSync(filePath) && fs2__namespace.statSync(filePath).size === 0) fs2__namespace.unlinkSync(filePath);
+      } catch {
+      }
       const errorMsg = error instanceof Error ? error.message : String(error);
       console.error(`\u4E0B\u8F7D\u5931\u8D25 [${filename}]: ${errorMsg}`);
       return { success: false, error: errorMsg };
@@ -2371,11 +2391,11 @@ var DouyinDownloader = class {
     try {
       ensureDir(basePath);
       const filePath = path__namespace.join(basePath, `${filename}${extension}`);
-      if (fs__namespace.existsSync(filePath)) {
+      if (fs2__namespace.existsSync(filePath)) {
         console.log(`\u6587\u4EF6\u5DF2\u5B58\u5728\uFF0C\u8DF3\u8FC7: ${filePath}`);
         return { success: true, filePath };
       }
-      fs__namespace.writeFileSync(filePath, content, "utf-8");
+      fs2__namespace.writeFileSync(filePath, content, "utf-8");
       console.log(`\u4FDD\u5B58\u5B8C\u6210: ${filePath}`);
       return { success: true, filePath };
     } catch (error) {
